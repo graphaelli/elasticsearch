@@ -28,6 +28,7 @@ public final class GetApiKeyRequest extends LegacyActionRequest {
     private final String userName;
     private final String apiKeyId;
     private final String apiKeyName;
+    private final String applicationName;
     private final boolean ownedByAuthenticatedUser;
     private final boolean withLimitedBy;
     private final boolean activeOnly;
@@ -38,6 +39,7 @@ public final class GetApiKeyRequest extends LegacyActionRequest {
         @Nullable String userName,
         @Nullable String apiKeyId,
         @Nullable String apiKeyName,
+        @Nullable String applicationName,
         boolean ownedByAuthenticatedUser,
         boolean withLimitedBy,
         boolean activeOnly,
@@ -47,6 +49,7 @@ public final class GetApiKeyRequest extends LegacyActionRequest {
         this.userName = textOrNull(userName);
         this.apiKeyId = textOrNull(apiKeyId);
         this.apiKeyName = textOrNull(apiKeyName);
+        this.applicationName = textOrNull(applicationName);
         this.ownedByAuthenticatedUser = ownedByAuthenticatedUser;
         this.withLimitedBy = withLimitedBy;
         this.activeOnly = activeOnly;
@@ -71,6 +74,10 @@ public final class GetApiKeyRequest extends LegacyActionRequest {
 
     public String getApiKeyName() {
         return apiKeyName;
+    }
+
+    public String getApplicationName() {
+        return applicationName;
     }
 
     public boolean ownedByAuthenticatedUser() {
@@ -133,6 +140,7 @@ public final class GetApiKeyRequest extends LegacyActionRequest {
             && Objects.equals(userName, that.userName)
             && Objects.equals(apiKeyId, that.apiKeyId)
             && Objects.equals(apiKeyName, that.apiKeyName)
+            && Objects.equals(applicationName, that.applicationName)
             && withLimitedBy == that.withLimitedBy
             && activeOnly == that.activeOnly
             && withProfileUid == that.withProfileUid;
@@ -140,7 +148,7 @@ public final class GetApiKeyRequest extends LegacyActionRequest {
 
     @Override
     public int hashCode() {
-        return Objects.hash(realmName, userName, apiKeyId, apiKeyName, ownedByAuthenticatedUser, withLimitedBy, activeOnly, withProfileUid);
+        return Objects.hash(realmName, userName, apiKeyId, apiKeyName, applicationName, ownedByAuthenticatedUser, withLimitedBy, activeOnly, withProfileUid);
     }
 
     public static Builder builder() {
@@ -152,6 +160,7 @@ public final class GetApiKeyRequest extends LegacyActionRequest {
         private String userName = null;
         private String apiKeyId = null;
         private String apiKeyName = null;
+        private String applicationName = null;
         private boolean ownedByAuthenticatedUser = false;
         private boolean withLimitedBy = false;
         private boolean activeOnly = false;
@@ -174,6 +183,11 @@ public final class GetApiKeyRequest extends LegacyActionRequest {
 
         public Builder apiKeyName(String apiKeyName) {
             this.apiKeyName = apiKeyName;
+            return this;
+        }
+
+        public Builder applicationName(String applicationName) {
+            this.applicationName = applicationName;
             return this;
         }
 
@@ -211,6 +225,7 @@ public final class GetApiKeyRequest extends LegacyActionRequest {
                 userName,
                 apiKeyId,
                 apiKeyName,
+                applicationName,
                 ownedByAuthenticatedUser,
                 withLimitedBy,
                 activeOnly,

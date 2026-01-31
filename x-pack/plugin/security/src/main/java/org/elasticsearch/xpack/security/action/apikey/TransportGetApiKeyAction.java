@@ -67,6 +67,7 @@ public final class TransportGetApiKeyAction extends TransportAction<GetApiKeyReq
             username,
             apiKeyName,
             apiKeyIds,
+            request.getApplicationName(),
             request.withLimitedBy(),
             request.activeOnly(),
             ActionListener.wrap(apiKeyInfos -> {

@@ -407,7 +407,7 @@ public class ApiKeyServiceTests extends ESTestCase {
         String[] apiKeyIds = generateRandomStringArray(4, 4, true, true);
         PlainActionFuture<Collection<ApiKey>> getApiKeyResponsePlainActionFuture = new PlainActionFuture<>();
         final boolean activeOnly = randomBoolean();
-        service.getApiKeys(realmNames, username, apiKeyName, apiKeyIds, randomBoolean(), activeOnly, getApiKeyResponsePlainActionFuture);
+        service.getApiKeys(realmNames, username, apiKeyName, apiKeyIds, null, randomBoolean(), activeOnly, getApiKeyResponsePlainActionFuture);
         final BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().filter(QueryBuilders.termQuery("doc_type", "api_key"));
         if (realmNames != null && realmNames.length > 0) {
             if (realmNames.length == 1) {
@@ -507,6 +507,7 @@ public class ApiKeyServiceTests extends ESTestCase {
                 randomFrom(randomAlphaOfLengthBetween(3, 8), null),
                 randomFrom(randomAlphaOfLengthBetween(3, 8), null),
                 generateRandomStringArray(4, 4, true, true),
+                null,
                 randomBoolean(),
                 randomBoolean(),
                 getApiKeyResponsePlainActionFuture
@@ -1482,6 +1483,7 @@ public class ApiKeyServiceTests extends ESTestCase {
             () -> service.getApiKeys(
                 new String[] { randomAlphaOfLength(6) },
                 randomAlphaOfLength(8),
+                null,
                 null,
                 null,
                 randomBoolean(),
