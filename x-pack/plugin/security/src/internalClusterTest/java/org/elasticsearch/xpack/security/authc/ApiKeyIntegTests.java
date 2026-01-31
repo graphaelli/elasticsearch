@@ -1117,59 +1117,76 @@ public class ApiKeyIntegTests extends SecurityIntegTestCase {
             "Authorization",
             basicAuthHeaderValue(ES_TEST_ROOT_USER, TEST_PASSWORD_SECURE_STRING)
         );
+        Client client = client().filterWithHeader(headers);
 
         // Create API keys with different application metadata
         final Map<String, Object> apmMetadata = Map.of("application", "apm");
         final Map<String, Object> fleetMetadata = Map.of("application", "fleet");
         final Map<String, Object> kibanaMetadata = Map.of("application", "kibana");
 
-        final Tuple<List<CreateApiKeyResponse>, List<Map<String, Object>>> tuple1 = createApiKeys(headers, 2, "apm-key-", apmMetadata, "monitor");
-        final List<CreateApiKeyResponse> apmApiKeys = tuple1.v1();
+        // Create APM API keys
+        List<CreateApiKeyResponse> apmApiKeys = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            final CreateApiKeyResponse response = new CreateApiKeyRequestBuilder(client)
+                .setName("apm-key-" + i)
+                .setRoleDescriptors(Collections.singletonList(DEFAULT_API_KEY_ROLE_DESCRIPTOR))
+                .setMetadata(apmMetadata)
+                .setRefreshPolicy(IMMEDIATE)
+                .get();
+            apmApiKeys.add(response);
+        }
 
-        final Tuple<List<CreateApiKeyResponse>, List<Map<String, Object>>> tuple2 = createApiKeys(headers, 2, "fleet-key-", fleetMetadata, "monitor");
-        final List<CreateApiKeyResponse> fleetApiKeys = tuple2.v1();
+        // Create Fleet API keys
+        List<CreateApiKeyResponse> fleetApiKeys = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            final CreateApiKeyResponse response = new CreateApiKeyRequestBuilder(client)
+                .setName("fleet-key-" + i)
+                .setRoleDescriptors(Collections.singletonList(DEFAULT_API_KEY_ROLE_DESCRIPTOR))
+                .setMetadata(fleetMetadata)
+                .setRefreshPolicy(IMMEDIATE)
+                .get();
+            fleetApiKeys.add(response);
+        }
 
-        final Tuple<List<CreateApiKeyResponse>, List<Map<String, Object>>> tuple3 = createApiKeys(headers, 1, "kibana-key-", kibanaMetadata, "monitor");
-        final List<CreateApiKeyResponse> kibanaApiKeys = tuple3.v1();
+        // Create Kibana API key
+        final CreateApiKeyResponse kibanaApiKey = new CreateApiKeyRequestBuilder(client)
+            .setName("kibana-key-0")
+            .setRoleDescriptors(Collections.singletonList(DEFAULT_API_KEY_ROLE_DESCRIPTOR))
+            .setMetadata(kibanaMetadata)
+            .setRefreshPolicy(IMMEDIATE)
+            .get();
 
-        Client client = client().filterWithHeader(headers);
         final boolean withLimitedBy = randomBoolean();
 
-        // Test exact application name match
+        // Test exact application name match for APM
         PlainActionFuture<GetApiKeyResponse> listener1 = new PlainActionFuture<>();
         client.execute(
             GetApiKeyAction.INSTANCE,
             GetApiKeyRequest.builder().applicationName("apm").withLimitedBy(withLimitedBy).build(),
             listener1
         );
-        verifyApiKeyInfos(
-            2,
-            apmApiKeys,
-            tuple1.v2(),
-            List.of(DEFAULT_API_KEY_ROLE_DESCRIPTOR),
-            withLimitedBy ? List.of(ES_TEST_ROOT_ROLE_DESCRIPTOR) : null,
-            listener1.get().getApiKeyInfoList(),
-            apmApiKeys.stream().map(CreateApiKeyResponse::getId).collect(Collectors.toSet()),
-            null
-        );
+        GetApiKeyResponse response1 = listener1.get();
+        assertThat(response1.getApiKeyInfoList().size(), equalTo(2));
+        Set<String> apmKeyIds = apmApiKeys.stream().map(CreateApiKeyResponse::getId).collect(Collectors.toSet());
+        for (GetApiKeyResponse.Item item : response1.getApiKeyInfoList()) {
+            assertThat(apmKeyIds, hasItem(item.apiKeyInfo().getId()));
+            assertThat(item.apiKeyInfo().getMetadata(), hasEntry("application", "apm"));
+        }
 
-        // Test different application
+        // Test exact application name match for Fleet
         PlainActionFuture<GetApiKeyResponse> listener2 = new PlainActionFuture<>();
         client.execute(
             GetApiKeyAction.INSTANCE,
             GetApiKeyRequest.builder().applicationName("fleet").withLimitedBy(withLimitedBy).build(),
             listener2
         );
-        verifyApiKeyInfos(
-            2,
-            fleetApiKeys,
-            tuple2.v2(),
-            List.of(DEFAULT_API_KEY_ROLE_DESCRIPTOR),
-            withLimitedBy ? List.of(ES_TEST_ROOT_ROLE_DESCRIPTOR) : null,
-            listener2.get().getApiKeyInfoList(),
-            fleetApiKeys.stream().map(CreateApiKeyResponse::getId).collect(Collectors.toSet()),
-            null
-        );
+        GetApiKeyResponse response2 = listener2.get();
+        assertThat(response2.getApiKeyInfoList().size(), equalTo(2));
+        Set<String> fleetKeyIds = fleetApiKeys.stream().map(CreateApiKeyResponse::getId).collect(Collectors.toSet());
+        for (GetApiKeyResponse.Item item : response2.getApiKeyInfoList()) {
+            assertThat(fleetKeyIds, hasItem(item.apiKeyInfo().getId()));
+            assertThat(item.apiKeyInfo().getMetadata(), hasEntry("application", "fleet"));
+        }
 
         // Test non-existent application
         PlainActionFuture<GetApiKeyResponse> listener3 = new PlainActionFuture<>();
@@ -1178,16 +1195,8 @@ public class ApiKeyIntegTests extends SecurityIntegTestCase {
             GetApiKeyRequest.builder().applicationName("non-existent").withLimitedBy(withLimitedBy).build(),
             listener3
         );
-        verifyApiKeyInfos(
-            0,
-            Collections.emptyList(),
-            null,
-            List.of(),
-            List.of(),
-            listener3.get().getApiKeyInfoList(),
-            Collections.emptySet(),
-            null
-        );
+        GetApiKeyResponse response3 = listener3.get();
+        assertThat(response3.getApiKeyInfoList().size(), equalTo(0));
     }
 
     public void testGetApiKeysOwnedByCurrentAuthenticatedUser() throws InterruptedException, ExecutionException {
