@@ -101,6 +101,7 @@ public class GetApiKeyRequestTests extends ESTestCase {
             .userName(randomBlankString.get())
             .apiKeyId(randomBlankString.get())
             .apiKeyName(randomBlankString.get())
+            .applicationName(randomBlankString.get())
             .ownedByAuthenticatedUser(randomBoolean())
             .withLimitedBy(randomBoolean())
             .withProfileUid(randomBoolean())
@@ -109,6 +110,40 @@ public class GetApiKeyRequestTests extends ESTestCase {
         assertThat(request.getUserName(), nullValue());
         assertThat(request.getApiKeyId(), nullValue());
         assertThat(request.getApiKeyName(), nullValue());
+        assertThat(request.getApplicationName(), nullValue());
+    }
+
+    public void testRequestWithApplicationName() {
+        final String applicationName = randomAlphaOfLength(8);
+        GetApiKeyRequest request = GetApiKeyRequest.builder()
+            .applicationName(applicationName)
+            .withProfileUid(randomBoolean())
+            .build();
+        ActionRequestValidationException ve = request.validate();
+        assertNull(ve);
+        assertEquals(applicationName, request.getApplicationName());
+    }
+
+    public void testRequestWithApplicationNameAndUserName() {
+        GetApiKeyRequest request = GetApiKeyRequest.builder()
+            .userName(randomAlphaOfLength(5))
+            .applicationName(randomAlphaOfLength(8))
+            .activeOnly(randomBoolean())
+            .withProfileUid(randomBoolean())
+            .build();
+        ActionRequestValidationException ve = request.validate();
+        assertNull(ve);
+    }
+
+    public void testRequestWithApplicationNameAndRealmName() {
+        GetApiKeyRequest request = GetApiKeyRequest.builder()
+            .realmName(randomAlphaOfLength(5))
+            .applicationName(randomAlphaOfLength(8))
+            .activeOnly(randomBoolean())
+            .withProfileUid(randomBoolean())
+            .build();
+        ActionRequestValidationException ve = request.validate();
+        assertNull(ve);
     }
 
     private static String randomNullOrEmptyString() {

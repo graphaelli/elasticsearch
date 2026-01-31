@@ -1112,6 +1112,84 @@ public class ApiKeyIntegTests extends SecurityIntegTestCase {
         );
     }
 
+    public void testGetApiKeysForApplication() throws InterruptedException, ExecutionException, IOException {
+        final Map<String, String> headers = Collections.singletonMap(
+            "Authorization",
+            basicAuthHeaderValue(ES_TEST_ROOT_USER, TEST_PASSWORD_SECURE_STRING)
+        );
+
+        // Create API keys with different application metadata
+        final Map<String, Object> apmMetadata = Map.of("application", "apm");
+        final Map<String, Object> fleetMetadata = Map.of("application", "fleet");
+        final Map<String, Object> kibanaMetadata = Map.of("application", "kibana");
+
+        final Tuple<List<CreateApiKeyResponse>, List<Map<String, Object>>> tuple1 = createApiKeys(headers, 2, "apm-key-", apmMetadata, "monitor");
+        final List<CreateApiKeyResponse> apmApiKeys = tuple1.v1();
+
+        final Tuple<List<CreateApiKeyResponse>, List<Map<String, Object>>> tuple2 = createApiKeys(headers, 2, "fleet-key-", fleetMetadata, "monitor");
+        final List<CreateApiKeyResponse> fleetApiKeys = tuple2.v1();
+
+        final Tuple<List<CreateApiKeyResponse>, List<Map<String, Object>>> tuple3 = createApiKeys(headers, 1, "kibana-key-", kibanaMetadata, "monitor");
+        final List<CreateApiKeyResponse> kibanaApiKeys = tuple3.v1();
+
+        Client client = client().filterWithHeader(headers);
+        final boolean withLimitedBy = randomBoolean();
+
+        // Test exact application name match
+        PlainActionFuture<GetApiKeyResponse> listener1 = new PlainActionFuture<>();
+        client.execute(
+            GetApiKeyAction.INSTANCE,
+            GetApiKeyRequest.builder().applicationName("apm").withLimitedBy(withLimitedBy).build(),
+            listener1
+        );
+        verifyApiKeyInfos(
+            2,
+            apmApiKeys,
+            tuple1.v2(),
+            List.of(DEFAULT_API_KEY_ROLE_DESCRIPTOR),
+            withLimitedBy ? List.of(ES_TEST_ROOT_ROLE_DESCRIPTOR) : null,
+            listener1.get().getApiKeyInfoList(),
+            apmApiKeys.stream().map(CreateApiKeyResponse::getId).collect(Collectors.toSet()),
+            null
+        );
+
+        // Test different application
+        PlainActionFuture<GetApiKeyResponse> listener2 = new PlainActionFuture<>();
+        client.execute(
+            GetApiKeyAction.INSTANCE,
+            GetApiKeyRequest.builder().applicationName("fleet").withLimitedBy(withLimitedBy).build(),
+            listener2
+        );
+        verifyApiKeyInfos(
+            2,
+            fleetApiKeys,
+            tuple2.v2(),
+            List.of(DEFAULT_API_KEY_ROLE_DESCRIPTOR),
+            withLimitedBy ? List.of(ES_TEST_ROOT_ROLE_DESCRIPTOR) : null,
+            listener2.get().getApiKeyInfoList(),
+            fleetApiKeys.stream().map(CreateApiKeyResponse::getId).collect(Collectors.toSet()),
+            null
+        );
+
+        // Test non-existent application
+        PlainActionFuture<GetApiKeyResponse> listener3 = new PlainActionFuture<>();
+        client.execute(
+            GetApiKeyAction.INSTANCE,
+            GetApiKeyRequest.builder().applicationName("non-existent").withLimitedBy(withLimitedBy).build(),
+            listener3
+        );
+        verifyApiKeyInfos(
+            0,
+            Collections.emptyList(),
+            null,
+            List.of(),
+            List.of(),
+            listener3.get().getApiKeyInfoList(),
+            Collections.emptySet(),
+            null
+        );
+    }
+
     public void testGetApiKeysOwnedByCurrentAuthenticatedUser() throws InterruptedException, ExecutionException {
         int noOfSuperuserApiKeys = randomIntBetween(3, 5);
         int noOfApiKeysForUserWithManageApiKeyRole = randomIntBetween(3, 5);
