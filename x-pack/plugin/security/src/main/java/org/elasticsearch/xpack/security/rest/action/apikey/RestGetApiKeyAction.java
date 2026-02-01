@@ -48,6 +48,7 @@ public final class RestGetApiKeyAction extends ApiKeyBaseRestHandler {
         final String apiKeyName = request.param("name");
         final String userName = request.param("username");
         final String realmName = request.param("realm_name");
+        final String applicationName = request.param("application");
         final boolean myApiKeysOnly = request.paramAsBoolean("owner", false);
         final boolean withLimitedBy = request.paramAsBoolean("with_limited_by", false);
         final boolean activeOnly = request.paramAsBoolean("active_only", false);
@@ -57,6 +58,7 @@ public final class RestGetApiKeyAction extends ApiKeyBaseRestHandler {
             .userName(userName)
             .apiKeyId(apiKeyId)
             .apiKeyName(apiKeyName)
+            .applicationName(applicationName)
             .ownedByAuthenticatedUser(myApiKeysOnly)
             .withLimitedBy(withLimitedBy)
             .activeOnly(activeOnly)

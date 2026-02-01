@@ -1860,6 +1860,7 @@ public class ApiKeyService implements Closeable {
                 username,
                 apiKeyName,
                 apiKeyIds,
+                null,
                 true,
                 false,
                 this::convertSearchHitToApiKeyInfo,
@@ -1946,6 +1947,7 @@ public class ApiKeyService implements Closeable {
             authentication.getEffectiveSubject().getUser().principal(),
             null,
             apiKeyIds,
+            null,
             false,
             false,
             ApiKeyService::convertSearchHitToVersionedApiKeyDoc,
@@ -1958,6 +1960,7 @@ public class ApiKeyService implements Closeable {
         String userName,
         String apiKeyName,
         String[] apiKeyIds,
+        String applicationName,
         boolean filterOutInvalidatedKeys,
         boolean filterOutExpiredKeys,
         Function<SearchHit, T> hitParser,
@@ -1982,6 +1985,13 @@ public class ApiKeyService implements Closeable {
                     boolQuery.filter(QueryBuilders.prefixQuery("name", apiKeyName.substring(0, apiKeyName.length() - 1)));
                 } else {
                     boolQuery.filter(QueryBuilders.termQuery("name", apiKeyName));
+                }
+            }
+            if (Strings.hasText(applicationName) && "*".equals(applicationName) == false) {
+                if (applicationName.endsWith("*")) {
+                    boolQuery.filter(QueryBuilders.prefixQuery("metadata_flattened.application", applicationName.substring(0, applicationName.length() - 1)));
+                } else {
+                    boolQuery.filter(QueryBuilders.termQuery("metadata_flattened.application", applicationName));
                 }
             }
             if (apiKeyIds != null && apiKeyIds.length > 0) {
@@ -2281,6 +2291,7 @@ public class ApiKeyService implements Closeable {
         String username,
         String apiKeyName,
         String[] apiKeyIds,
+        String applicationName,
         boolean withLimitedBy,
         boolean activeOnly,
         ActionListener<Collection<ApiKey>> listener
@@ -2291,17 +2302,19 @@ public class ApiKeyService implements Closeable {
             username,
             apiKeyName,
             apiKeyIds,
+            applicationName,
             activeOnly,
             activeOnly,
             hit -> convertSearchHitToApiKeyInfo(hit, withLimitedBy),
             ActionListener.wrap(apiKeyInfos -> {
                 if (apiKeyInfos.isEmpty() && logger.isDebugEnabled()) {
                     logger.debug(
-                        "No API keys found for realms {}, user [{}], API key name [{}], API key IDs {}, and active_only flag [{}]",
+                        "No API keys found for realms {}, user [{}], API key name [{}], API key IDs {}, application [{}], and active_only flag [{}]",
                         Arrays.toString(realmNames),
                         username,
                         apiKeyName,
                         Arrays.toString(apiKeyIds),
+                        applicationName,
                         activeOnly
                     );
                 }
